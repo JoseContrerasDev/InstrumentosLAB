@@ -31,7 +31,9 @@
         </tbody>
     </table>
 
-    <button id="downloadPdfBtn">Descargar PDF</button>
+    <button id="downloadExcelBtn">Descargar Excel</button>
+    <input type="file" id="uploadExcelBtn" accept=".xlsx" />
+    <button id="saveExcelDataBtn" disabled>Guardar datos del Excel en Local Storage</button>
 
     <h2>Buscar Dispositivo</h2>
     <form id="searchForm">
@@ -41,8 +43,8 @@
     </form>
     <ul id="searchResults"></ul>
 
-    <!-- Incluye jsPDF desde un CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Incluye xlsx desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

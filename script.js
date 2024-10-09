@@ -3,13 +3,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchForm = document.getElementById('searchForm');
     const deviceTableBody = document.getElementById('deviceTableBody');
     const searchResults = document.getElementById('searchResults');
-    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+    const uploadExcelBtn = document.getElementById('uploadExcelBtn');
+    const saveExcelDataBtn = document.getElementById('saveExcelDataBtn');
+    let extractedDevices = [];
     let editingDevice = null;
 
-    // Función para cargar dispositivos guardados
     function loadDevices() {
         const devices = JSON.parse(localStorage.getItem('devices')) || [];
-        deviceTableBody.innerHTML = ''; // Limpiar tabla
+        deviceTableBody.innerHTML = '';
         devices.forEach((device, index) => {
             const row = document.createElement('tr');
             const nameCell = document.createElement('td');
@@ -19,12 +21,10 @@ document.addEventListener('DOMContentLoaded', function() {
             nameCell.textContent = device.name;
             codeCell.textContent = device.code;
             
-            // Botón para editar
             const editButton = document.createElement('button');
             editButton.textContent = 'Editar';
             editButton.addEventListener('click', () => editDevice(index));
 
-            // Botón para eliminar
             const deleteButton = document.createElement('button');
             deleteButton.textContent = 'Eliminar';
             deleteButton.addEventListener('click', () => deleteDevice(index));
@@ -39,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Función para guardar dispositivos en el Local Storage
     function saveDevice(name, code) {
         const devices = JSON.parse(localStorage.getItem('devices')) || [];
         if (editingDevice !== null) {
@@ -52,7 +51,6 @@ document.addEventListener('DOMContentLoaded', function() {
         loadDevices();
     }
 
-    // Función para eliminar un dispositivo
     function deleteDevice(index) {
         const devices = JSON.parse(localStorage.getItem('devices')) || [];
         devices.splice(index, 1);
@@ -60,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
         loadDevices();
     }
 
-    // Función para editar un dispositivo
     function editDevice(index) {
         const devices = JSON.parse(localStorage.getItem('devices')) || [];
         const device = devices[index];
@@ -69,16 +66,14 @@ document.addEventListener('DOMContentLoaded', function() {
         editingDevice = index;
     }
 
-    // Evento al enviar el formulario para agregar o modificar dispositivos
     deviceForm.addEventListener('submit', function(event) {
         event.preventDefault();
         const name = document.getElementById('deviceName').value;
         const code = document.getElementById('deviceCode').value;
         saveDevice(name, code);
-        deviceForm.reset(); // Limpiar formulario
+        deviceForm.reset();
     });
 
-    // Evento al enviar el formulario de búsqueda
     searchForm.addEventListener('submit', function(event) {
         event.preventDefault();
         const searchName = document.getElementById('searchName').value.toLowerCase();
@@ -87,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
             device.name.toLowerCase().includes(searchName)
         );
         
-        searchResults.innerHTML = ''; // Limpiar resultados anteriores
+        searchResults.innerHTML = '';
 
         if (matchingDevices.length > 0) {
             matchingDevices.forEach(device => {
@@ -101,33 +96,65 @@ document.addEventListener('DOMContentLoaded', function() {
             searchResults.appendChild(noResultItem);
         }
 
-        searchForm.reset(); // Limpiar formulario
+        searchForm.reset();
     });
 
-    // Función para descargar la tabla como PDF
-    downloadPdfBtn.addEventListener('click', function() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+    downloadExcelBtn.addEventListener('click', function() {
         const devices = JSON.parse(localStorage.getItem('devices')) || [];
-
-        doc.setFontSize(16);
-        doc.text('Dispositivos Guardados', 10, 10);
-        doc.setFontSize(12);
-
-        // Dibujar encabezados de la tabla
-        doc.text('Nombre del Dispositivo', 10, 20);
-        doc.text('Código', 100, 20);
-
-        // Dibujar dispositivos en la tabla
-        let startY = 30;
-        devices.forEach((device, index) => {
-            doc.text(device.name, 10, startY + (index * 10));
-            doc.text(device.code, 100, startY + (index * 10));
+        const worksheetData = [['Nombre del Dispositivo', 'Código']];
+        devices.forEach(device => {
+            worksheetData.push([device.name, device.code]);
         });
 
-        doc.save('dispositivos.pdf');
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Dispositivos');
+
+        XLSX.writeFile(workbook, 'dispositivos.xlsx');
     });
 
-    // Cargar dispositivos al cargar la página
+    uploadExcelBtn.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                extractedDevices = extractDevicesFromExcel(jsonData);
+                if (extractedDevices.length > 0) {
+                    saveExcelDataBtn.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    });
+
+    saveExcelDataBtn.addEventListener('click', function() {
+        if (extractedDevices.length > 0) {
+            const existingDevices = JSON.parse(localStorage.getItem('devices')) || [];
+            const mergedDevices = [...existingDevices, ...extractedDevices];
+            localStorage.setItem('devices', JSON.stringify(mergedDevices));
+            loadDevices();
+            alert('Datos del Excel guardados en el Local Storage');
+            extractedDevices = [];
+            saveExcelDataBtn.disabled = true;
+        }
+    });
+
+    function extractDevicesFromExcel(data) {
+        const devices = [];
+        data.forEach((row, index) => {
+            if (index !== 0 && row[0] && row[1]) {
+                const name = row[0];
+                const code = row[1];
+                devices.push({ name, code });
+            }
+        });
+        return devices;
+    }
+
     loadDevices();
 });
