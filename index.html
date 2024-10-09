@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispositivos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Registro de Dispositivos</h1>
+    <form id="deviceForm">
+        <label for="deviceName">Nombre del dispositivo:</label>
+        <input type="text" id="deviceName" required>
+        <br><br>
+        <label for="deviceCode">Código del dispositivo:</label>
+        <input type="text" id="deviceCode" required>
+        <br><br>
+        <button type="submit">Agregar/Modificar Dispositivo</button>
+    </form>
+
+    <h2>Dispositivos Guardados</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre del Dispositivo</th>
+                <th>Código</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="deviceTableBody">
+        </tbody>
+    </table>
+
+    <button id="downloadPdfBtn">Descargar PDF</button>
+
+    <h2>Buscar Dispositivo</h2>
+    <form id="searchForm">
+        <label for="searchName">Nombre del dispositivo:</label>
+        <input type="text" id="searchName" required>
+        <button type="submit">Buscar</button>
+    </form>
+    <ul id="searchResults"></ul>
+
+    <!-- Incluye jsPDF desde un CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
