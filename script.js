@@ -2,10 +2,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const deviceForm = document.getElementById('deviceForm');
     const searchForm = document.getElementById('searchForm');
     const deviceTableBody = document.getElementById('deviceTableBody');
-    const searchResults = document.getElementById('searchResults');
+    const searchResultsTable = document.getElementById('searchResultsTable');
+    const searchResultsBody = document.getElementById('searchResultsBody');
     const downloadExcelBtn = document.getElementById('downloadExcelBtn');
     const uploadExcelBtn = document.getElementById('uploadExcelBtn');
     const saveExcelDataBtn = document.getElementById('saveExcelDataBtn');
+    const noRevisionCheckbox = document.getElementById('noRevision');
+    const deviceRevisionInput = document.getElementById('deviceRevision');
     let extractedDevices = [];
     let editingDevice = null;
 
@@ -38,7 +41,13 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteButton.classList.add('delete-button');
         deleteButton.addEventListener('click', () => deleteDevice(index));
 
+        const strikeButton = document.createElement('button');
+        strikeButton.textContent = 'Tachar';
+        strikeButton.classList.add('strike-button');
+        strikeButton.addEventListener('click', () => toggleStrikeRow(row));
+
         actionsCell.appendChild(editButton);
+        actionsCell.appendChild(strikeButton);
         actionsCell.appendChild(deleteButton);
 
         row.appendChild(nameCell);
@@ -46,54 +55,46 @@ document.addEventListener('DOMContentLoaded', function() {
         row.appendChild(revisionCell);
         row.appendChild(actionsCell);
         deviceTableBody.appendChild(row);
-    }
 
-    // Guardar dispositivo con validación para duplicados
-    function saveDevice(name, code, revision) {
-        const devices = JSON.parse(localStorage.getItem('devices')) || [];
-
-        // Evitar duplicados de código de dispositivo
-        if (editingDevice === null && devices.some(device => device.code === code)) {
-            alert("El código del dispositivo ya existe. Por favor, ingresa un código único.");
-            return;
+        if (device.revision !== 'No Necesario') {
+            checkIfExpired(device.revision, row);
         }
+    }
 
-        if (editingDevice !== null) {
-            devices[editingDevice] = { name, code, revision };
-            editingDevice = null;
-        } else {
-            devices.push({ name, code, revision });
+    // Función para tachar o destachar una fila
+    function toggleStrikeRow(row) {
+        row.classList.toggle('striked');
+    }
+
+    // Función para verificar si la revisión está vencida y aplicar color rojo si es el caso
+    function checkIfExpired(revisionDate, row) {
+        if (revisionDate) {
+            const today = new Date();
+            const [year, month] = revisionDate.split('-').map(Number);
+            const revision = new Date(year, month - 1);
+
+            if (revision <= today) {
+                row.classList.add('expired');
+            }
         }
-        localStorage.setItem('devices', JSON.stringify(devices));
-        loadDevices();
     }
 
-    function deleteDevice(index) {
+    // Función para descargar datos como Excel
+    downloadExcelBtn.addEventListener('click', function() {
         const devices = JSON.parse(localStorage.getItem('devices')) || [];
-        devices.splice(index, 1);
-        localStorage.setItem('devices', JSON.stringify(devices));
-        loadDevices();
-    }
+        const worksheetData = [['Nombre del Dispositivo', 'Código', 'Revisión']];
 
-    function editDevice(index) {
-        const devices = JSON.parse(localStorage.getItem('devices')) || [];
-        const device = devices[index];
-        document.getElementById('deviceName').value = device.name;
-        document.getElementById('deviceCode').value = device.code;
-        document.getElementById('deviceRevision').value = device.revision || '';
-        editingDevice = index;
-    }
+        devices.forEach(device => {
+            worksheetData.push([device.name, device.code, device.revision || 'No especificado']);
+        });
 
-    deviceForm.addEventListener('submit', function(event) {
-        event.preventDefault();
-        const name = document.getElementById('deviceName').value;
-        const code = document.getElementById('deviceCode').value;
-        const revision = document.getElementById('deviceRevision').value;
-        saveDevice(name, code, revision);
-        deviceForm.reset();
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Dispositivos');
+        XLSX.writeFile(workbook, 'dispositivos.xlsx');
     });
 
-    // Funcionalidad de carga de datos desde Excel
+    // Procesar archivo Excel al cargarlo
     uploadExcelBtn.addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
@@ -113,6 +114,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    function extractDevicesFromExcel(data) {
+        const devices = [];
+        data.forEach((row, index) => {
+            if (index !== 0 && row[0] && row[1]) {
+                const name = row[0].trim();
+                const code = row[1].trim();
+                const revision = row[2] ? row[2].trim() : 'No especificado';
+                devices.push({ name, code, revision });
+            }
+        });
+        return devices;
+    }
+
     // Guardar los datos extraídos de Excel en el Local Storage
     saveExcelDataBtn.addEventListener('click', function() {
         if (extractedDevices.length > 0) {
@@ -125,39 +139,106 @@ document.addEventListener('DOMContentLoaded', function() {
             saveExcelDataBtn.disabled = true;
         }
     });
-    downloadExcelBtn.addEventListener('click', function() {
+
+    function saveDevice(name, code, revision) {
         const devices = JSON.parse(localStorage.getItem('devices')) || [];
-        const worksheetData = [['Nombre del Dispositivo', 'Código', 'Revisión']]; // Encabezados para el Excel
-    
-        // Añadir cada dispositivo a worksheetData, incluyendo la columna de "Revisión"
-        devices.forEach(device => {
-            worksheetData.push([device.name, device.code, device.revision || 'No especificado']);
-        });
-    
-        // Crear la hoja de cálculo y el libro de trabajo
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Dispositivos');
-    
-        // Descargar el archivo como "dispositivos.xlsx"
-        XLSX.writeFile(workbook, 'dispositivos.xlsx');
-    });
-    
-    // Función para extraer dispositivos de Excel, incluyendo "Revisión"
-    function extractDevicesFromExcel(data) {
-        const devices = [];
-        data.forEach((row, index) => {
-            if (index !== 0 && row[0] && row[1]) { // Ignorar el encabezado y filas vacías
-                const name = row[0].trim();
-                const code = row[1].trim();
-                const revision = row[2] ? row[2].trim() : 'No especificado';
-                if (devices.every(device => device.code !== code)) {
-                    devices.push({ name, code, revision });
-                }
-            }
-        });
-        return devices;
+        const revisionValue = noRevisionCheckbox.checked ? 'No Necesario' : revision;
+
+        if (editingDevice === null && devices.some(device => device.code === code)) {
+            alert("El código del dispositivo ya existe. Por favor, ingresa un código único.");
+            return;
+        }
+
+        if (editingDevice !== null) {
+            devices[editingDevice] = { name, code, revision: revisionValue };
+            editingDevice = null;
+        } else {
+            devices.push({ name, code, revision: revisionValue });
+        }
+        localStorage.setItem('devices', JSON.stringify(devices));
+        loadDevices();
     }
+
+    function deleteDevice(index) {
+        const devices = JSON.parse(localStorage.getItem('devices')) || [];
+        devices.splice(index, 1);
+        localStorage.setItem('devices', JSON.stringify(devices));
+        loadDevices();
+    }
+
+    function editDevice(index) {
+        const devices = JSON.parse(localStorage.getItem('devices')) || [];
+        const device = devices[index];
+        document.getElementById('deviceName').value = device.name;
+        document.getElementById('deviceCode').value = device.code;
+        document.getElementById('deviceRevision').value = device.revision !== 'No Necesario' ? device.revision : '';
+        noRevisionCheckbox.checked = device.revision === 'No Necesario';
+        editingDevice = index;
+    }
+
+    deviceForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const name = document.getElementById('deviceName').value;
+        const code = document.getElementById('deviceCode').value;
+        const revision = deviceRevisionInput.value;
+        saveDevice(name, code, revision);
+        deviceForm.reset();
+        noRevisionCheckbox.checked = false;
+    });
+
+    // Función de búsqueda para buscar por nombre o código
+    searchForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const searchQuery = document.getElementById('searchName').value.toLowerCase();
+        const devices = JSON.parse(localStorage.getItem('devices')) || [];
+
+        const matchingDevices = devices.filter(device =>
+            device.name.toLowerCase().includes(searchQuery) ||
+            device.code.toLowerCase().includes(searchQuery)
+        );
+
+        searchResultsBody.innerHTML = '';
+        if (matchingDevices.length > 0) {
+            matchingDevices.forEach(device => {
+                const row = document.createElement('tr');
+                
+                const nameCell = document.createElement('td');
+                nameCell.textContent = device.name;
+                row.appendChild(nameCell);
+                
+                const codeCell = document.createElement('td');
+                codeCell.textContent = device.code;
+                row.appendChild(codeCell);
+                
+                const revisionCell = document.createElement('td');
+                revisionCell.textContent = device.revision || 'No especificado';
+                row.appendChild(revisionCell);
+
+                searchResultsBody.appendChild(row);
+            });
+            searchResultsTable.style.display = 'table';
+        } else {
+            searchResultsTable.style.display = 'none';
+            alert('No se encontraron dispositivos');
+        }
+
+        searchForm.reset();
+    });
+
+    deviceRevisionInput.addEventListener('input', function() {
+        if (deviceRevisionInput.value) {
+            noRevisionCheckbox.checked = false;
+        }
+    });
+
+    noRevisionCheckbox.addEventListener('change', function() {
+        if (noRevisionCheckbox.checked) {
+            deviceRevisionInput.value = '';
+            deviceRevisionInput.disabled = true;
+        } else {
+            deviceRevisionInput.disabled = false;
+        }
+    });
 
     loadDevices();
 });

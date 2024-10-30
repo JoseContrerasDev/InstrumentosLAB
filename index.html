@@ -16,11 +16,32 @@
         <input type="text" id="deviceCode" required>
         <br><br>
         <label for="deviceRevision">Mes y Año de Revisión:</label>
-        <input type="month" id="deviceRevision" required>
+        <input type="month" id="deviceRevision">
+        <input type="checkbox" id="noRevision" />
+        <label for="noRevision">No Necesario</label>
         <br><br>
         <button type="submit">Agregar/Modificar Dispositivo</button>
     </form>
-
+    
+    <h2>Buscar Dispositivo</h2>
+    <form id="searchForm">
+        <label for="searchName">Nombre o Código del dispositivo:</label>
+        <input type="text" id="searchName" required>
+        <button type="submit">Buscar</button>
+    </form>
+    
+    <table id="searchResultsTable" style="display: none; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Nombre del Dispositivo</th>
+                <th>Código</th>
+                <th>Revisión</th>
+            </tr>
+        </thead>
+        <tbody id="searchResultsBody">
+        </tbody>
+    </table>
+    
     <h2>Dispositivos Guardados</h2>
     <table>
         <thead>
@@ -38,14 +59,6 @@
     <button id="downloadExcelBtn">Descargar Excel</button>
     <input type="file" id="uploadExcelBtn" accept=".xlsx" />
     <button id="saveExcelDataBtn" disabled>Guardar datos del Excel en Local Storage</button>
-
-    <h2>Buscar Dispositivo</h2>
-    <form id="searchForm">
-        <label for="searchName">Nombre del dispositivo:</label>
-        <input type="text" id="searchName" required>
-        <button type="submit">Buscar</button>
-    </form>
-    <ul id="searchResults"></ul>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>

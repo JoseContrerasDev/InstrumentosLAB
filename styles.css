@@ -53,3 +53,13 @@ thead {
 .delete-button {
     background-color: #dc3545;
 }
+.striked td {
+    text-decoration: line-through;
+}
+.expired {
+    background-color: #ffcccc; /* Rojo claro */
+}
+
+.striked td {
+    text-decoration: line-through;
+}
