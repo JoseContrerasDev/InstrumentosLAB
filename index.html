@@ -15,6 +15,9 @@
         <label for="deviceCode">Código del dispositivo:</label>
         <input type="text" id="deviceCode" required>
         <br><br>
+        <label for="deviceRevision">Mes y Año de Revisión:</label>
+        <input type="month" id="deviceRevision" required>
+        <br><br>
         <button type="submit">Agregar/Modificar Dispositivo</button>
     </form>
 
@@ -24,6 +27,7 @@
             <tr>
                 <th>Nombre del Dispositivo</th>
                 <th>Código</th>
+                <th>Revisión</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -43,7 +47,6 @@
     </form>
     <ul id="searchResults"></ul>
 
-    <!-- Incluye xlsx desde CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
